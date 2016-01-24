@@ -4,6 +4,12 @@
 
 A module for using session outside of connect/express
 
+## Installation
+
+```
+npm install --save redis-sessions-anywhere
+```
+
 ## Usage
 
 ### TypeScript (preferred)
