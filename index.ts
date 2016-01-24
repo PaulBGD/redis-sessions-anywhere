@@ -30,7 +30,7 @@ export default class RedisSessionsAnywhere<S> {
                     return reject(error);
                 }
                 if (!reply) {
-                    return resolve(this.set(token, {} as S));
+                    return resolve(null);
                 }
                 let parsed: SessionStorageObject<S>;
                 try {

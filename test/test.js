@@ -4,7 +4,7 @@ require('source-map-support').install();
 
 let assert = require('assert');
 let redis = require('redis');
-let RedisSessions = require('../');
+let RedisSessions = require('../index.js');
 let TokenGenerator = RedisSessions.TokenGenerator;
 
 describe('redis-sessions-anywhere', () => {
@@ -37,7 +37,7 @@ describe('redis-sessions-anywhere', () => {
                     return sessions.get(token);
                 })
                 .then((object) => {
-                    assert(object.data === null, 'Returns null')
+                    assert(object === null, 'Returns null');
                 })
                 .catch(err => {
                     throw err;
@@ -71,7 +71,7 @@ describe('redis-sessions-anywhere', () => {
                     return sessions.get(token);
                 })
                 .then((object) => {
-                    assert.deepEqual({}, object.data, 'Returns empty object')
+                    assert(object === null, 'Returns null');
                 })
                 .catch(err => {
                     throw err;
