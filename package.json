@@ -7,7 +7,7 @@
   "scripts": {
     "test": "mocha",
     "buildDeclaration": "tsc --declaration index.ts --module commonjs && sed '1d' index.d.ts > index.d.ts.temp && rm index.d.ts && mv index.d.ts.temp index.d.ts",
-    "buildJavaScript": "tsc index.ts --module commonjs",
+    "buildJavaScript": "tsc index.ts -sourcemap --module commonjs",
     "build": "npm run buildDeclaration && npm run buildJavaScript"
   },
   "repository": {

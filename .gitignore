@@ -1,6 +1,7 @@
 # Our generated files
 index.d.ts
 index.js
+index.js.map
 
 # Node
 node_modules
