@@ -148,7 +148,6 @@ export default class RedisSessionsAnywhere<S> {
 
 // export it here for the sake of typescript, but it gets overwritten down below
 export class TokenGenerator {
-
     constructor(private sessions: RedisSessionsAnywhere<any>, private options: TokenGeneratorOptions) {
         if (!options.key || typeof options.key !== 'string') {
             throw new Error('Invalid key');

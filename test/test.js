@@ -37,7 +37,7 @@ describe('redis-sessions-anywhere', () => {
                     return sessions.get(token);
                 })
                 .then((object) => {
-                    assert.deepEqual({}, object.data, 'Returns empty object')
+                    assert(object.data === null, 'Returns null')
                 })
                 .catch(err => {
                     throw err;

@@ -27,6 +27,7 @@ sessions.get(token).then((session: SessionObject<Session>) => {
     //    },
     //    timeLeft: 214122 // how much time until this session expires
     // }
+    // or it returns null if there is no session data set
 });
 
 sessions.set(token, {
@@ -59,6 +60,7 @@ sessions.get(token).then(session => {
     //    },
     //    timeLeft: 214122 // how much time until this session expires
     // }
+    // or it returns null if there is no session data set
 });
 
 sessions.set(token, {
@@ -73,7 +75,59 @@ sessions.delete(token).then(() => {
 });
 ```
 
-## Retrieving the raw .js file or the .d.ts file
+## Token Generation
+
+We include a class to handle token generation in a secure way. Here's an example usage:
+
+```javascript
+import RedisSessionsAnywhere, {TokenGenerator} from 'redis-sessions-anywhere';
+
+// or in es5
+// var RedisSessionsAnywhere = require('redis-sessions-anywhere');
+// var TokenGenerator = RedisSessionsAnywhere.TokenGenerator;
+
+let sessions = new RedisSessionsAnywhere(client);
+let generator = new TokenGenerator(sessions, {
+    key: 'aaaaaaaaaaaaaaaa' // this should be a secure key, generated and stored in a config
+});
+
+generator.generateKey().then(key => {
+    // key looks like
+    // {token: 'awddaawdawdadd', clientToken: 'awdawdawd.adwadawdada.awdawdadw'}
+    // the 'token' is what you'll pass when handling sessions
+    // the clientToken is what you'll store on your client
+});
+
+// you can later verify the clientToken by doing
+generator.isValid(clientToken); // => true/false
+
+// when you need to get the original token from the clientToken, just do
+generator.parseClientToken(clientToken); // => {token: 'awdawdwadadad', expiresAt: 123213123}
+```
+
+## Options
+
+### RedisSessionsAnywhere
+
+* prefix - the prefix for sessions in redis
+* ttl - how long sessions last
+
+* lock (default false) - enables locking, which sets a lock before setting data. This fixes an issue when two instances are setting the same key
+* lockSuffix (only used if lock is true) - the suffix to use for the lock keys
+* lockTtl (only used if lock is true) - how long a lock key will exist
+* lockRetry (only used if lock is true) - how long in ms between checking the lock status
+
+### TokenGenerator
+
+* key (required) - a strong key which encrypts the tokens. This should be randomly generated at the first run. There are no length restrictions
+* tokenBytes - how many bytes a token consists of
+* checkForCollission (default true) - if you like to gamble a bit, then set this to false and hope your tokens never collide
+
+## Using as connect middleware
+
+This can be used with express, however currently there is no built in middleware. We would definitely love someone to make a PR adding this feature.
+
+## Retrieving the raw .js file, the .d.ts file, or the source map
 
 To keep commit history clean, our built .js and .d.ts files are not included on git. To get them, just clone the repository then run
 
