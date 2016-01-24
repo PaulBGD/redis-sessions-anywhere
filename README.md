@@ -1,4 +1,7 @@
 # redis-sessions-anywhere
+
+[![Build Status](https://travis-ci.org/PaulBGD/redis-sessions-anywhere.svg?branch=master)](https://travis-ci.org/PaulBGD/redis-sessions-anywhere)
+
 A module for using session outside of connect/express
 
 ## Usage
