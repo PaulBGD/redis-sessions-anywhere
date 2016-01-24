@@ -74,7 +74,7 @@ describe('redis-sessions-anywhere', function () {
             var sessions = new RedisSessions(client);
             var generator = new TokenGenerator(sessions, {
                 key: 'adwadwadawdawdawdawadwadaaaaaaaaaaaaaaaaaaaaaaaaaaawdwadwwaddawdadw',
-                checkForCollission: false // we're not testing this right now
+                checkForCollision: false // we're not testing this right now
             });
             return generator.generateKey().then(function (key) {
                 assert.notEqual(null, key, 'key is not returned');
@@ -86,7 +86,7 @@ describe('redis-sessions-anywhere', function () {
             });
         });
 
-        it('can check for collission', function () {
+        it('can check for collision', function () {
             var sessions = new RedisSessions(client);
             var generator = new TokenGenerator(sessions, {
                 key: 'adwadwadawdawdawdawadwadaaaaaaaaaaaaaaaaaaaaaaaaaaawdwadwwaddawdadw'

@@ -130,7 +130,7 @@ generator.parseClientToken(clientToken); // => {token: 'awdawdwadadad', expiresA
 
 * key (required) - a strong key which encrypts the tokens. This should be randomly generated at the first run. There are no length restrictions
 * tokenBytes - how many bytes a token consists of
-* checkForCollission (default true) - if you like to gamble a bit, then set this to false and hope your tokens never collide
+* checkForCollision (default true) - if you like to gamble a bit, then set this to false and hope your tokens never collide
 
 ## Using as connect middleware
 

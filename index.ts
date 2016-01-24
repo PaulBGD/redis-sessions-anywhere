@@ -155,7 +155,7 @@ export class TokenGenerator {
         this.options = merge<TokenGeneratorOptions>({
             key: '',
             tokenBytes: 16,
-            checkForCollission: true
+            checkForCollision: true
         }, options);
     }
 
@@ -193,7 +193,7 @@ export class TokenGenerator {
             return generated;
         };
 
-        if (!this.options.checkForCollission) {
+        if (!this.options.checkForCollision) {
             let token: Buffer = crypto.randomBytes(this.options.tokenBytes);
             return Promise.resolve({
                 token: token.toString('hex'),
@@ -384,7 +384,7 @@ export interface NewOptions {
 export interface TokenGeneratorOptions {
     key: string;
     tokenBytes: number;
-    checkForCollission: boolean;
+    checkForCollision: boolean;
 }
 
 export interface TokenAndClientToken {
