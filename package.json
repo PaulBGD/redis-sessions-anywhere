@@ -1,6 +1,6 @@
 {
   "name": "redis-sessions-anywhere",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Use redis sessions, anywhere",
   "main": "index.js",
   "typings": "index.d.ts",
