@@ -1,0 +1,7 @@
+# Our generated files
+index.d.ts
+index.js
+
+# Node
+node_modules
+npm-debug.log

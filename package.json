@@ -1,0 +1,34 @@
+{
+  "name": "redis-sessions-anywhere",
+  "version": "0.0.1",
+  "description": "Use redis sessions, anywhere",
+  "main": "index.js",
+  "typings": "index.d.ts",
+  "scripts": {
+    "test": "mocha",
+    "buildDeclaration": "tsc --declaration index.ts --module commonjs && sed '1d' index.d.ts > index.d.ts.temp && rm index.d.ts && mv index.d.ts.temp index.d.ts",
+    "buildJavaScript": "tsc index.ts --module commonjs",
+    "build": "npm run buildDeclaration && npm run buildJavaScript"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PaulBGD/redis-sessions-anywhere.git"
+  },
+  "keywords": [
+    "redis",
+    "connect",
+    "sessions"
+  ],
+  "author": "PaulBGD",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/PaulBGD/redis-sessions-anywhere/issues"
+  },
+  "homepage": "https://github.com/PaulBGD/redis-sessions-anywhere#readme",
+  "dependencies": {
+    "bluebird": "^3.1.2"
+  },
+  "devDependencies": {
+    "redis": "^2.4.2"
+  }
+}
