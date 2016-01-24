@@ -2,9 +2,10 @@
 
 import {RedisClient} from 'redis';
 import * as Promise from 'bluebird';
+import * as crypto from 'crypto';
 
-class RedisSessionsAnywhere<S> {
-    constructor(private client: RedisClient, private options?: NewOptions) {
+export default class RedisSessionsAnywhere<S> {
+    constructor(public client: RedisClient, public options?: NewOptions) {
         if (!client) {
             throw new Error('Client is not redis client!');
         }
@@ -43,33 +44,6 @@ class RedisSessionsAnywhere<S> {
                 resolve(object);
             });
         });
-    }
-
-    private getLock(token: string, callback: (error: Error, unlock?: () => Promise<void>) => any) {
-        let lockKey: string = this.options.prefix + token + this.options.lockSuffix;
-        let attemptLock = () => {
-            this.client.set([lockKey, 'L', 'NX', 'PX', this.options.lockTtl], (error, result) => {
-                if (error) {
-                    return callback(error);
-                }
-                if (!result) {
-                    return setTimeout(() => attemptLock(), this.options.lockRetry);
-                }
-                callback(null, unlock); // we're good to go
-            });
-        }
-
-        let unlock = (): Promise<void> => {
-            return new Promise<void>((resolve, reject) => {
-                this.client.del(lockKey, (error) => {
-                    if (error) {
-                        return callback(error);
-                    }
-                    resolve(null); // we're finally done
-                });
-            });
-        }
-        attemptLock();
     }
 
     public set(token: string, values?: S): Promise<SessionObject<S>> {
@@ -143,6 +117,191 @@ class RedisSessionsAnywhere<S> {
             });
         });
     }
+
+    private getLock(token: string, callback: (error: Error, unlock?: () => Promise<void>) => any) {
+        let lockKey: string = this.options.prefix + token + this.options.lockSuffix;
+        let attemptLock = () => {
+            this.client.set([lockKey, 'L', 'NX', 'PX', this.options.lockTtl], (error, result) => {
+                if (error) {
+                    return callback(error);
+                }
+                if (!result) {
+                    return setTimeout(() => attemptLock(), this.options.lockRetry);
+                }
+                callback(null, unlock); // we're good to go
+            });
+        }
+
+        let unlock = (): Promise<void> => {
+            return new Promise<void>((resolve, reject) => {
+                this.client.del(lockKey, (error) => {
+                    if (error) {
+                        return callback(error);
+                    }
+                    resolve(null); // we're finally done
+                });
+            });
+        }
+        attemptLock();
+    }
+}
+
+// export it here for the sake of typescript, but it gets overwritten down below
+export class TokenGenerator {
+
+    constructor(private sessions: RedisSessionsAnywhere<any>, private options: TokenGeneratorOptions) {
+        if (!options.key || typeof options.key !== 'string') {
+            throw new Error('Invalid key');
+        }
+        this.options = merge<TokenGeneratorOptions>({
+            key: '',
+            tokenBytes: 16,
+            checkForCollission: true
+        }, options);
+    }
+
+    public generateKey(): Promise<TokenAndClientToken> {
+        let generate: (token: Buffer) => string = (token: Buffer) => {
+            // create our two keys
+            let hmac: crypto.Hmac = crypto.createHmac('sha256', this.options.key);
+            hmac.update('resa-enc');
+            let encryptionKey = hmac.digest();
+
+            hmac = crypto.createHmac('sha256', this.options.key);
+            hmac.update('resa-mac');
+            let signatureKey = hmac.digest();
+
+            // generate our iv and final str
+            let iv: Buffer = crypto.randomBytes(16);
+            let str: Buffer = new Buffer(token.toString('hex') + '|' + (Date.now() + this.sessions.options.ttl), 'utf8');
+            emptyBuffer(token); // we empty our buffers as a security measure
+
+            let cipher: crypto.Cipher = crypto.createCipheriv('aes256', encryptionKey, iv);
+            let bufferOne = cipher.update(str);
+            emptyBuffer(str);
+            let bufferTwo = cipher.final();
+            let buffer: Buffer = Buffer.concat([bufferOne, bufferTwo]);
+            emptyBuffer(bufferOne);
+            emptyBuffer(bufferTwo);
+
+            hmac = crypto.createHmac('sha256', signatureKey);
+            hmac.update(iv);
+            hmac.update('.');
+            hmac.update(buffer);
+            let hmacResult: Buffer = hmac.digest();
+            let generated: string = base64urlencode(iv) + '.' + base64urlencode(buffer) + '.' + base64urlencode(hmacResult);
+
+            return generated;
+        };
+
+        if (!this.options.checkForCollission) {
+            let token: Buffer = crypto.randomBytes(this.options.tokenBytes);
+            return Promise.resolve({
+                token: token.toString('hex'),
+                clientToken: generate(token)
+            });
+        }
+
+        let next: () => Promise<TokenAndClientToken> = () => {
+            let token: Buffer = crypto.randomBytes(this.options.tokenBytes);
+            let tokenString = token.toString('hex');
+            return new Promise<TokenAndClientToken>((resolve, reject) => {
+                this.sessions.client.exists(tokenString, (error, exists) => {
+                    if (error) {
+                        return reject(error);
+                    }
+                    if (exists) {
+                        return resolve(next());
+                    }
+                    resolve({
+                        token: token.toString('hex'),
+                        clientToken: generate(token)
+                    });
+                });
+            });
+        };
+
+        return next();
+    }
+
+    public parseClientToken(token: string): ClientToken {
+        let components: string[] = token.split('.');
+        if (components.length !== 3) {
+            throw new Error('Invalid component length');
+        }
+        let iv: Buffer;
+        let buffer: Buffer;
+        let hmacResult: Buffer;
+        let expectedHmac: Buffer;
+        let encryptionKey: Buffer;
+        let signatureKey: Buffer;
+        try {
+            // create our two keys
+            let hmac: crypto.Hmac = crypto.createHmac('sha256', this.options.key);
+            hmac.update('resa-enc');
+            encryptionKey = hmac.digest();
+
+            hmac = crypto.createHmac('sha256', this.options.key);
+            hmac.update('resa-mac');
+            signatureKey = hmac.digest();
+
+            iv = base64urldecode(components[0]);
+            buffer = base64urldecode(components[1]);
+            hmacResult = base64urldecode(components[2]);
+            if (iv.length !== 16) {
+                throw new Error('Invalid iv length');
+            }
+
+            // check expected hmac
+            hmac = crypto.createHmac('sha256', signatureKey);
+            hmac.update(iv);
+            hmac.update('.');
+            hmac.update(buffer);
+            expectedHmac = hmac.digest();
+            if (!buffersEqual(expectedHmac, hmacResult)) {
+                clean();
+                throw new Error('hmac does not match');
+            }
+
+            let cipher = crypto.createDecipheriv('aes256', encryptionKey, iv);
+            let str: string = cipher.update(buffer).toString('utf8');
+            str += cipher.final('utf8');
+
+            let split = str.split('|');
+            if (split.length !== 2) {
+                throw new Error('Original contents have been modified');
+            }
+            let token: string = split[0];
+            let expiresAt: number = +split[1];
+
+            clean();
+            return {
+                token: token,
+                expiresAt: expiresAt
+            };
+        } catch (err) {
+            throw err;
+        }
+
+        function clean() {
+            emptyBuffer(iv);
+            emptyBuffer(buffer);
+            emptyBuffer(hmacResult);
+            emptyBuffer(expectedHmac);
+            emptyBuffer(encryptionKey);
+            emptyBuffer(signatureKey);
+        }
+    }
+
+    public isValid(token: string): boolean {
+        try {
+            let parsed: ClientToken = this.parseClientToken(token);
+            return Date.now() < parsed.expiresAt;
+        } catch (err) {
+            // todo maybe some way of passing this back?
+            return false;
+        }
+    }
 }
 
 function merge<T>(original: T, object: any): T {
@@ -152,6 +311,55 @@ function merge<T>(original: T, object: any): T {
         }
     }
     return original;
+}
+
+// taken from https://github.com/mozilla/node-client-sessions/blob/master/lib/client-sessions.js
+function buffersEqual(a: Buffer, b: Buffer): boolean {
+    if (a.length !== b.length) {
+        return false;
+    }
+    let ret = 0;
+    for (let i = 0; i < a.length; i++) {
+        ret |= a.readUInt8(i) ^ b.readUInt8(i);
+    }
+    return ret === 0;
+}
+
+function base64urlencode(arg: Buffer): string {
+    let s: string = arg.toString('base64');
+    s = s.split('=')[0]; // Remove any trailing '='s
+    s = s.replace(/\+/g, '-'); // 62nd char of encoding
+    s = s.replace(/\//g, '_'); // 63rd char of encoding
+    // TODO optimize this; we can do much better
+    return s;
+}
+
+function base64urldecode(arg: string): Buffer {
+    var s = arg;
+    s = s.replace(/-/g, '+'); // 62nd char of encoding
+    s = s.replace(/_/g, '/'); // 63rd char of encoding
+    switch (s.length % 4) { // Pad with trailing '='s
+        case 0:
+            break; // No pad chars in this case
+        case 2:
+            s += "==";
+            break; // Two pad chars
+        case 3:
+            s += "=";
+            break; // One pad char
+        default:
+            throw new Error("Illegal base64url string!");
+    }
+    return new Buffer(s, 'base64'); // Standard base64 decoder
+}
+
+
+function emptyBuffer(buffer: Buffer) {
+    if (buffer) {
+        for (let i = 0, length = buffer.length; i < length; i++) {
+            buffer[i] = 0;
+        }
+    }
 }
 
 interface SessionStorageObject<S> {
@@ -174,7 +382,23 @@ export interface NewOptions {
     lockRetry: number;
 }
 
-export default RedisSessionsAnywhere; // we override this in the next line, but ts code reading this exact file depends on it
+export interface TokenGeneratorOptions {
+    key: string;
+    tokenBytes: number;
+    checkForCollission: boolean;
+}
+
+export interface TokenAndClientToken {
+    token: string;
+    clientToken: string;
+}
+
+export interface ClientToken {
+    token: string;
+    expiresAt: number;
+}
+
 module.exports = RedisSessionsAnywhere; // the actual export
 module.exports.default = RedisSessionsAnywhere; // set the default for ES6 modules or typescript
 module.exports.__esModule = true; // define it as a module
+module.exports.TokenGenerator = TokenGenerator; // and last, reexport our TokenGenerator

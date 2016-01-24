@@ -72,3 +72,11 @@ sessions.delete(token).then(() => {
     // session deleted
 });
 ```
+
+## Retrieving the raw .js file or the .d.ts file
+
+To keep commit history clean, our built .js and .d.ts files are not included on git. To get them, just clone the repository then run
+
+```
+npm run build
+```
