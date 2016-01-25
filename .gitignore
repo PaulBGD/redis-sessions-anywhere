@@ -9,3 +9,6 @@ lib/connect.js.map
 # Node
 node_modules
 npm-debug.log
+
+# Typings
+typings/
