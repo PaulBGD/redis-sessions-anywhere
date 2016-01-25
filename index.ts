@@ -1,8 +1,12 @@
 /// <reference path="./typings/tsd.d.ts"/>
+/// <reference path="./lib/connect.d.ts"/>
 
 import {RedisClient} from 'redis';
 import * as Promise from 'bluebird';
 import * as crypto from 'crypto';
+
+import connect from './lib/connect';
+import {RequestHandler} from 'express';
 
 export default class RedisSessionsAnywhere<S> {
     constructor(public client: RedisClient, public options?: NewOptions) {
@@ -159,45 +163,48 @@ export class TokenGenerator {
         }, options);
     }
 
+    public generateClientToken(token: Buffer | string): string {
+        if (!Buffer.isBuffer(token)) {
+            token = new Buffer(token as string, 'hex');
+        }
+        // create our two keys
+        let hmac: crypto.Hmac = crypto.createHmac('sha256', this.options.key);
+        hmac.update('resa-enc');
+        let encryptionKey = hmac.digest();
+
+        hmac = crypto.createHmac('sha256', this.options.key);
+        hmac.update('resa-mac');
+        let signatureKey = hmac.digest();
+
+        // generate our iv and final str
+        let iv: Buffer = crypto.randomBytes(16);
+        let str: Buffer = new Buffer(token.toString('hex') + '|' + (Date.now() + this.sessions.options.ttl), 'utf8');
+        emptyBuffer(token as Buffer); // we empty our buffers as a security measure
+
+        let cipher: crypto.Cipher = crypto.createCipheriv('aes256', encryptionKey, iv);
+        let bufferOne = cipher.update(str);
+        emptyBuffer(str);
+        let bufferTwo = cipher.final();
+        let buffer: Buffer = Buffer.concat([bufferOne, bufferTwo]);
+        emptyBuffer(bufferOne);
+        emptyBuffer(bufferTwo);
+
+        hmac = crypto.createHmac('sha256', signatureKey);
+        hmac.update(iv);
+        hmac.update('.');
+        hmac.update(buffer);
+        let hmacResult: Buffer = hmac.digest();
+        let generated: string = base64urlencode(iv) + '.' + base64urlencode(buffer) + '.' + base64urlencode(hmacResult);
+
+        return generated;
+    }
+
     public generateKey(): Promise<TokenAndClientToken> {
-        let generate: (token: Buffer) => string = (token: Buffer) => {
-            // create our two keys
-            let hmac: crypto.Hmac = crypto.createHmac('sha256', this.options.key);
-            hmac.update('resa-enc');
-            let encryptionKey = hmac.digest();
-
-            hmac = crypto.createHmac('sha256', this.options.key);
-            hmac.update('resa-mac');
-            let signatureKey = hmac.digest();
-
-            // generate our iv and final str
-            let iv: Buffer = crypto.randomBytes(16);
-            let str: Buffer = new Buffer(token.toString('hex') + '|' + (Date.now() + this.sessions.options.ttl), 'utf8');
-            emptyBuffer(token); // we empty our buffers as a security measure
-
-            let cipher: crypto.Cipher = crypto.createCipheriv('aes256', encryptionKey, iv);
-            let bufferOne = cipher.update(str);
-            emptyBuffer(str);
-            let bufferTwo = cipher.final();
-            let buffer: Buffer = Buffer.concat([bufferOne, bufferTwo]);
-            emptyBuffer(bufferOne);
-            emptyBuffer(bufferTwo);
-
-            hmac = crypto.createHmac('sha256', signatureKey);
-            hmac.update(iv);
-            hmac.update('.');
-            hmac.update(buffer);
-            let hmacResult: Buffer = hmac.digest();
-            let generated: string = base64urlencode(iv) + '.' + base64urlencode(buffer) + '.' + base64urlencode(hmacResult);
-
-            return generated;
-        };
-
         if (!this.options.checkForCollision) {
             let token: Buffer = crypto.randomBytes(this.options.tokenBytes);
             return Promise.resolve({
                 token: token.toString('hex'),
-                clientToken: generate(token)
+                clientToken: this.generateClientToken(token)
             });
         }
 
@@ -214,7 +221,7 @@ export class TokenGenerator {
                     }
                     resolve({
                         token: token.toString('hex'),
-                        clientToken: generate(token)
+                        clientToken: this.generateClientToken(token)
                     });
                 });
             });
@@ -292,14 +299,23 @@ export class TokenGenerator {
         }
     }
 
-    public isValid(token: string): boolean {
+    public isValid(token: string | ClientToken): boolean {
         try {
-            let parsed: ClientToken = this.parseClientToken(token);
+            let parsed: ClientToken;
+            if (typeof token === 'string') {
+                parsed = this.parseClientToken(token);
+            } else {
+                parsed = token;
+            }
             return Date.now() < parsed.expiresAt;
         } catch (err) {
             // todo maybe some way of passing this back?
             return false;
         }
+    }
+
+    public connect(options?: ConnectOptions): RequestHandler {
+        return connect(this.sessions as any, this as any, options);
     }
 }
 
@@ -395,6 +411,11 @@ export interface TokenAndClientToken {
 export interface ClientToken {
     token: string;
     expiresAt: number;
+}
+
+export interface ConnectOptions {
+    cookieName: string;
+    alwaysUpdate: boolean;
 }
 
 module.exports = RedisSessionsAnywhere; // the actual export

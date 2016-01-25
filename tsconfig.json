@@ -7,7 +7,7 @@
         "jsx": "react",
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
-        "declaration": false,
+        "declaration": true,
         "noImplicitAny": false,
         "removeComments": true,
         "noLib": false,
@@ -20,14 +20,21 @@
         "**/*.tsx",
         "!node_modules/**"
     ],
-    "compileOnSave": true,
-    "buildOnSave": true,
+    "compileOnSave": false,
+    "buildOnSave": false,
     "files": [
         "index.d.ts",
         "index.ts",
+        "lib/connect.d.ts",
+        "lib/connect.ts",
+        "lib/session.d.ts",
         "typings/bluebird/bluebird.d.ts",
+        "typings/debug/debug.d.ts",
+        "typings/express/express.d.ts",
+        "typings/mime/mime.d.ts",
         "typings/node/node.d.ts",
         "typings/redis/redis.d.ts",
+        "typings/serve-static/serve-static.d.ts",
         "typings/tsd.d.ts"
     ],
     "atom": {

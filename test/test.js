@@ -1,11 +1,16 @@
 'use strict';
 
 require('source-map-support').install();
+var Promise = require('bluebird');
+var request = require('request-promise');
 
 var assert = require('assert');
 var redis = require('redis');
 var RedisSessions = require('../index.js');
 var TokenGenerator = RedisSessions.TokenGenerator;
+
+var express = require('express');
+var cookieParser = require('cookie-parser');
 
 describe('redis-sessions-anywhere', function () {
     var client = redis.createClient();
@@ -100,6 +105,55 @@ describe('redis-sessions-anywhere', function () {
     });
 
     after(function () {
+        client.quit();
+    });
+});
+
+describe('redis sessions anywhere connect', () => {
+    var client = redis.createClient();
+    var sessions = new RedisSessions(client);
+    var generator = new TokenGenerator(sessions, {
+        key: 'adwadwadawdawdawdawadwadaaaaaaaaaaaaaaaaaaaaaaaaaaawdwadwwaddawdadw'
+    });
+    var app = express();
+    app.use(cookieParser('some random secret')); // include cookie parser
+    app.use(generator.connect()); // include our connect module
+
+    app.get('/', function(request, response) {
+        response.json(request.session);
+    });
+    app.get('/change', function(request, response) {
+        request.session.dummy = true;
+        response.json({});
+    });
+    var url = 'http://localhost:3000/';
+
+    it('runs the basic set of tests', () => {
+        return request({
+            uri: url,
+            jar: true,
+            json: true
+        }).then(res => {
+            assert.deepEqual(res, {}, 'data was returned');
+            return request({
+                uri: url + 'change',
+                jar: true,
+                json: true
+            });
+        }).then(() => {
+            return request({
+                uri: url,
+                jar: true,
+                json: true
+            });
+        }).then((res) => {
+            assert.deepEqual(res, {dummy: true}, 'dummy was not set');
+        });
+    });
+
+    var server = app.listen(3000);
+    after(function () {
+        server.close();
         client.quit();
     });
 });
