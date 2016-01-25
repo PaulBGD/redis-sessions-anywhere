@@ -1,5 +1,4 @@
 /// <reference path="../typings/tsd.d.ts"/>
-/// <reference path="session.d.ts"/>
 
 import {Request, Response, RequestHandler} from 'express';
 import RedisSessionsAnywhere, {SessionObject, TokenGenerator, TokenAndClientToken, ClientToken, ConnectOptions} from '../';
@@ -29,12 +28,14 @@ export default function connect(sessions: RedisSessionsAnywhere<any>, generator:
             let args = arguments;
             let instance = response;
             if (!shouldUpdate) {
-                return finishUp(false, arguments, instance);
+                return finishUp(arguments, instance);
             }
+            delete request[options.sessionKey]._token; // we don't need this now
+            clientToken = generator.generateClientToken(token);
+            setCookie();
             sessions.set(token, request[options.sessionKey]).then(() => {
                 // update our client token
-                clientToken = generator.generateClientToken(token);
-                finishUp(true, args, instance);
+                finishUp(args, instance);
             });
         };
 
@@ -72,10 +73,7 @@ export default function connect(sessions: RedisSessionsAnywhere<any>, generator:
             });
         }
 
-        function finishUp(updated: boolean, args: any, instance: any) {
-            if (updated) {
-                setCookie();
-            }
+        function finishUp(args: any, instance: any) {
             previousEnd.apply(instance, args);
         }
 

@@ -121,7 +121,9 @@ describe('redis sessions anywhere connect', function () {
         sessionKey: 'custom' // custom session key
     })); // include our connect module
 
+    var token;
     app.get('/', function (request, response) {
+        token = request.custom._token;
         response.json(request.custom);
     });
     app.get('/change', function (request, response) {
@@ -156,8 +158,14 @@ describe('redis sessions anywhere connect', function () {
     });
 
     var server = app.listen(3000);
-    after(function () {
-        server.close();
-        client.quit();
+    after(function (done) {
+        client.del('resa:' + token, function(err, result) {
+            if (err) {
+                throw err;
+            }
+            server.close();
+            client.quit();
+            done();
+        });
     });
 });
