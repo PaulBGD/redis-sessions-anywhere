@@ -114,6 +114,20 @@ generator.isValid(clientToken); // => true/false
 generator.parseClientToken(clientToken); // => {token: 'awdawdwadadad', expiresAt: 123213123}
 ```
 
+## Using as connect middleware
+
+After creating your sessions and generator objects, you can call `.connect` on the generator to return a connect middleware.
+
+```javascript
+app.use(cookieParser('super secret')); // include cookie parser
+app.use(generator.connect()); // include our connect module
+```
+
+You can also pass options to the connect middleware
+
+* cookieName - the name of the cookie in the browser
+* alwaysUpdate - always updates the session object in redis, which also updates the time it times out
+
 ## Options
 
 ### RedisSessionsAnywhere
@@ -131,10 +145,6 @@ generator.parseClientToken(clientToken); // => {token: 'awdawdwadadad', expiresA
 * key (required) - a strong key which encrypts the tokens. This should be randomly generated at the first run. There are no length restrictions
 * tokenBytes - how many bytes a token consists of
 * checkForCollision (default true) - if you like to gamble a bit, then set this to false and hope your tokens never collide
-
-## Using as connect middleware
-
-This can be used with express, however currently there is no built in middleware. We would definitely love someone to make a PR adding this feature.
 
 ## Retrieving the raw .js file, the .d.ts file, or the source map
 
