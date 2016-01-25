@@ -315,7 +315,7 @@ export class TokenGenerator {
     }
 
     public connect(options?: ConnectOptions): RequestHandler {
-        return connect(this.sessions as any, this as any, options);
+        return connect(this.sessions as any, this as any, options as any);
     }
 }
 
@@ -388,19 +388,19 @@ export interface SessionObject<S> {
 }
 
 export interface NewOptions {
-    prefix: string;
-    ttl: number;
+    prefix?: string;
+    ttl?: number;
 
-    lock: boolean;
-    lockSuffix: string;
-    lockTtl: number;
-    lockRetry: number;
+    lock?: boolean;
+    lockSuffix?: string;
+    lockTtl?: number;
+    lockRetry?: number;
 }
 
 export interface TokenGeneratorOptions {
     key: string;
-    tokenBytes: number;
-    checkForCollision: boolean;
+    tokenBytes?: number;
+    checkForCollision?: boolean;
 }
 
 export interface TokenAndClientToken {
@@ -414,9 +414,9 @@ export interface ClientToken {
 }
 
 export interface ConnectOptions {
-    cookieName: string;
-    alwaysUpdate: boolean;
-    sessionKey: string;
+    cookieName?: string;
+    alwaysUpdate?: boolean;
+    sessionKey?: string;
 }
 
 module.exports = RedisSessionsAnywhere; // the actual export
