@@ -1,5 +1,5 @@
 /// <reference path="./typings/tsd.d.ts"/>
-/// <reference path="./lib/connect.d.ts"/>
+/// <reference path="./lib/session.d.ts"/>
 
 import {RedisClient} from 'redis';
 import * as Promise from 'bluebird';

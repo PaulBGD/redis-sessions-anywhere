@@ -109,7 +109,7 @@ describe('redis-sessions-anywhere', function () {
     });
 });
 
-describe('redis sessions anywhere connect', () => {
+describe('redis sessions anywhere connect', function () {
     var client = redis.createClient();
     var sessions = new RedisSessions(client);
     var generator = new TokenGenerator(sessions, {
@@ -119,35 +119,35 @@ describe('redis sessions anywhere connect', () => {
     app.use(cookieParser('some random secret')); // include cookie parser
     app.use(generator.connect()); // include our connect module
 
-    app.get('/', function(request, response) {
+    app.get('/', function (request, response) {
         response.json(request.session);
     });
-    app.get('/change', function(request, response) {
+    app.get('/change', function (request, response) {
         request.session.dummy = true;
         response.json({});
     });
     var url = 'http://localhost:3000/';
 
-    it('runs the basic set of tests', () => {
+    it('runs the basic set of tests', function () {
         return request({
             uri: url,
             jar: true,
             json: true
-        }).then(res => {
+        }).then(function (res) {
             assert.deepEqual(res, {}, 'data was returned');
             return request({
                 uri: url + 'change',
                 jar: true,
                 json: true
             });
-        }).then(() => {
+        }).then(function () {
             return request({
                 uri: url,
                 jar: true,
                 json: true
             });
-        }).then((res) => {
-            assert.deepEqual(res, {dummy: true}, 'dummy was not set');
+        }).then(function (res) {
+            assert.deepEqual(res, { dummy: true }, 'dummy was not set');
         });
     });
 
