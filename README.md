@@ -127,6 +127,7 @@ You can also pass options to the connect middleware
 
 * cookieName - the name of the cookie in the browser
 * alwaysUpdate - always updates the session object in redis, which also updates the time it times out
+* sessionKey (default `session`) - name of the session key on the request object
 
 ## Options
 

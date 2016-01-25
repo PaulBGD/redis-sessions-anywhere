@@ -9,7 +9,8 @@ let debug = require('debug')('resa:Connect');
 export default function connect(sessions: RedisSessionsAnywhere<any>, generator: TokenGenerator, options?: ConnectOptions): RequestHandler {
     options = merge<ConnectOptions>({
         cookieName: 'resa',
-        alwaysUpdate: false
+        alwaysUpdate: false,
+        sessionKey: 'session'
     }, options);
     return (request: Request, response: Response, next: Function) => {
         let clientToken: string;
@@ -23,14 +24,14 @@ export default function connect(sessions: RedisSessionsAnywhere<any>, generator:
             let shouldUpdate: boolean = options.alwaysUpdate || generated;
             if (!shouldUpdate) {
                 // we can do better, but for now this is a good json check
-                shouldUpdate = JSON.stringify(originalSession) !== JSON.stringify(request.session);
+                shouldUpdate = JSON.stringify(originalSession) !== JSON.stringify(request[options.sessionKey]);
             }
             let args = arguments;
             let instance = response;
             if (!shouldUpdate) {
                 return finishUp(false, arguments, instance);
             }
-            sessions.set(token, request.session).then(() => {
+            sessions.set(token, request[options.sessionKey]).then(() => {
                 // update our client token
                 clientToken = generator.generateClientToken(token);
                 finishUp(true, args, instance);
@@ -65,7 +66,7 @@ export default function connect(sessions: RedisSessionsAnywhere<any>, generator:
             sessions.get(token).then((session: SessionObject<any>) => {
                 let data = session ? session.data : {};
                 data._token = token;
-                request.session = data;
+                request[options.sessionKey] = data;
                 originalSession = merge({}, data);
                 next(); // we're done here, until the request is finished
             });

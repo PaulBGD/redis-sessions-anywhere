@@ -117,13 +117,15 @@ describe('redis sessions anywhere connect', function () {
     });
     var app = express();
     app.use(cookieParser('some random secret')); // include cookie parser
-    app.use(generator.connect()); // include our connect module
+    app.use(generator.connect({
+        sessionKey: 'custom' // custom session key
+    })); // include our connect module
 
     app.get('/', function (request, response) {
-        response.json(request.session);
+        response.json(request.custom);
     });
     app.get('/change', function (request, response) {
-        request.session.dummy = true;
+        request.custom.dummy = true;
         response.json({});
     });
     var url = 'http://localhost:3000/';

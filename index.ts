@@ -416,6 +416,7 @@ export interface ClientToken {
 export interface ConnectOptions {
     cookieName: string;
     alwaysUpdate: boolean;
+    sessionKey: string;
 }
 
 module.exports = RedisSessionsAnywhere; // the actual export
