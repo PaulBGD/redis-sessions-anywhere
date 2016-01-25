@@ -134,6 +134,7 @@ describe('redis sessions anywhere connect', function () {
             jar: true,
             json: true
         }).then(function (res) {
+            delete res._token; // ignore this
             assert.deepEqual(res, {}, 'data was returned');
             return request({
                 uri: url + 'change',
