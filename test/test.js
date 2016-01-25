@@ -148,6 +148,7 @@ describe('redis sessions anywhere connect', function () {
                 json: true
             });
         }).then(function (res) {
+            delete res._token; // ignore this
             assert.deepEqual(res, { dummy: true }, 'dummy was not set');
         });
     });
