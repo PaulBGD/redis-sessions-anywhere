@@ -14,3 +14,4 @@ services:
 before_script:
     - npm install -g mocha
     - npm install -g typescript
+    - npm install -g tsd
