@@ -16,27 +16,26 @@ export default function connect(sessions: RedisSessionsAnywhere<any>, generator:
         let token: string;
         let generated = false;
 
-        let previousEnd = response.end;
+        let previousEnd = (response as any)._storeHeader;
         let originalSession;
-        response.end = function() {
+        (response as any)._storeHeader = function() {
             // todo check if session data changed
             let shouldUpdate: boolean = options.alwaysUpdate || generated;
             if (!shouldUpdate) {
                 // we can do better, but for now this is a good json check
                 shouldUpdate = JSON.stringify(originalSession) !== JSON.stringify(request[options.sessionKey]);
             }
-            let args = arguments;
             let instance = response;
             if (!shouldUpdate) {
                 return finishUp(arguments, instance);
             }
             delete request[options.sessionKey]._token; // we don't need this now
-            clientToken = generator.generateClientToken(token);
-            setCookie();
-            sessions.set(token, request[options.sessionKey]).then(() => {
-                // update our client token
-                finishUp(args, instance);
-            });
+            if (options.alwaysUpdate) {
+                clientToken = generator.generateClientToken(token);
+                setCookie();
+            }
+            finishUp(arguments, instance);
+            sessions.set(token, request[options.sessionKey]).catch(debug);
         };
 
         if (request.signedCookies[options.cookieName]) {
@@ -60,6 +59,7 @@ export default function connect(sessions: RedisSessionsAnywhere<any>, generator:
             token = key.token;
             clientToken = key.clientToken;
             generated = true;
+            setCookie();
             update();
         });
 
