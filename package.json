@@ -8,7 +8,7 @@
     "test": "npm run build && mocha",
     "buildDeclaration": "tsc --declaration index.ts --module commonjs && sed '1d' index.d.ts > index.d.ts.temp && rm index.d.ts && mv index.d.ts.temp index.d.ts",
     "buildJavaScript": "tsc index.ts lib/connect.ts -sourcemap --module commonjs",
-    "build": "npm run buildDeclaration && npm run buildJavaScript"
+    "build": "tsd install && npm run buildDeclaration && npm run buildJavaScript"
   },
   "repository": {
     "type": "git",

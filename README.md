@@ -146,7 +146,17 @@ You can also pass options to the connect middleware
 * tokenBytes - how many bytes a token consists of
 * checkForCollision (default true) - if you like to gamble a bit, then set this to false and hope your tokens never collide
 
-## Retrieving the raw .js file, the .d.ts file, or the source map
+## Setting up dev environment
+
+We just require a few dependencies, run these to get set up:
+
+```
+npm install -g typescript tsd # install the global dependencies
+npm install --save-dev
+npm run build
+```
+
+## Retrieving the raw .js file, the .d.ts file, or the source map (requires dev environment)
 
 To keep commit history clean, our built .js and .d.ts files are not included on git. To get them, just clone the repository then run
 
